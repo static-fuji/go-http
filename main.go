@@ -38,7 +38,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	case http.MethodGet:
 		getData(w, r, key)
 	default:
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "405, Method not allowed", http.StatusMethodNotAllowed)
 	}
 
 	fmt.Fprintf(w, "アクセスキー:%s", key)
@@ -58,5 +58,17 @@ func putData(w http.ResponseWriter, r *http.Request, key string) {
 }
 
 func getData(w http.ResponseWriter, r *http.Request, key string) {
+	mutex.RLock()
+	defer mutex.RUnlock()
 
+	// データを取得
+	data, ok := data[key]
+	if !ok {
+		http.NotFound(w, r)
+		return
+	}
+
+	// レスポンスにデータを書き込み
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
