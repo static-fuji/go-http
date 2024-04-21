@@ -2,18 +2,26 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"regexp"
 	"sync"
 )
 
-var (
+type dataBody struct {
 	data  map[string][]byte
 	mutex sync.RWMutex
-)
+}
+
+func New() *dataBody {
+	return &dataBody{
+		data: make(map[string][]byte),
+	}
+}
 
 func main() {
-	http.HandleFunc("/objects/", handler)
+	m := New()
+	http.HandleFunc("/objects/", m.handler)
 	http.ListenAndServe(":8000", nil)
 
 	fmt.Println("サーバーを起動します... ポート 8000")
@@ -23,7 +31,7 @@ func main() {
 	}
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func (m *dataBody) handler(w http.ResponseWriter, r *http.Request) {
 	key := r.URL.Path[len("/objects/"):]
 
 	validKey := regexp.MustCompile(`^[a-zA-Z0-9]{1,10}$`)
@@ -34,35 +42,42 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodPut:
-		putData(w, r, key)
+		m.putData(w, r, key)
 	case http.MethodGet:
-		getData(w, r, key)
+		m.getData(w, r, key)
 	default:
 		http.Error(w, "405, Method not allowed", http.StatusMethodNotAllowed)
 	}
-
-	fmt.Fprintf(w, "アクセスキー:%s", key)
 }
 
-func putData(w http.ResponseWriter, r *http.Request, key string) {
-	body := make([]byte, r.ContentLength)
-	_, err := r.Body.Read(body)
+func (m *dataBody) putData(w http.ResponseWriter, r *http.Request, key string) {
+	//body := make([]byte, r.ContentLength)
+	fmt.Println(m.data[key])
+	body, err := io.ReadAll(r.Body)
+
+	//mapの初期化
+
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
 		return
 	}
 
-	mutex.Lock()
-	defer mutex.Unlock()
-	data[key] = body
+	//data := make(map[string][]byte)
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
+	m.data[key] = body
+	fmt.Println(m.data[key])
 }
 
-func getData(w http.ResponseWriter, r *http.Request, key string) {
-	mutex.RLock()
-	defer mutex.RUnlock()
+func (m *dataBody) getData(w http.ResponseWriter, r *http.Request, key string) {
+	fmt.Println(m.data[key])
+
+	m.mutex.Lock()
+	defer m.mutex.Unlock()
 
 	// データを取得
-	data, ok := data[key]
+	data, ok := m.data[key]
 	if !ok {
 		http.NotFound(w, r)
 		return
