@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// mutexを含むデータ
+// mutexを含むデータボディ
 type dataBody struct {
 	data  map[string][]byte
 	mutex sync.RWMutex
@@ -73,6 +73,7 @@ func (m *dataBody) getData(w http.ResponseWriter, r *http.Request, key string) {
 
 	//レスポンスボディの作成
 	m.mutex.RLock()
+	defer m.mutex.RUnlock()
 	data, ok := m.data[key]
 	if !ok {
 		http.NotFound(w, r)
@@ -80,7 +81,7 @@ func (m *dataBody) getData(w http.ResponseWriter, r *http.Request, key string) {
 	}
 
 	//レスポンスの書き込み
-	m.mutex.RUnlock()
+
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
