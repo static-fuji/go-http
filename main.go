@@ -81,7 +81,6 @@ func (m *dataBody) getData(w http.ResponseWriter, r *http.Request, key string) {
 	}
 
 	//レスポンスの書き込み
-
 	w.WriteHeader(http.StatusOK)
 	w.Write(data)
 }
